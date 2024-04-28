@@ -5,7 +5,10 @@ import com.google.gson.Gson;
 import com.yuyue.backend.entity.WeChatSession;
 import com.yuyue.backend.exception.UserRegisterErrorEnum;
 import com.yuyue.backend.service.SessionService;
+import com.yuyue.backend.tool.ObjectUtil;
+import com.yuyue.backend.utility.UserContext;
 import com.yuyue.backend.vo.RegisterVo;
+import com.yuyue.backend.vo.UserSaveToRedis;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -53,8 +56,16 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
     }
 
     @Override
-    public void bookCountPlus(UserEntity user) {
-        this.baseMapper.bookCountPlus(user.getUId());
+    public UserSaveToRedis getUserInfo() {
+        UserEntity user = UserContext.getUser();
+        UserSaveToRedis userSaveToRedis = new UserSaveToRedis();
+        ObjectUtil.copyProperties(user, userSaveToRedis);
+        return userSaveToRedis;
+    }
+
+    @Override
+    public void bookCountPlus(UserEntity user, int number) {
+        this.baseMapper.bookCountPlus(user.getUId(), number);
     }
 
 
@@ -78,7 +89,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
     @Override
     public String register(RegisterVo registerVo) {
         String code = registerVo.getCode();
+        System.out.println("in register..." +  registerVo);
         WeChatSession sessionInfo = this.getSessionInfo(code);
+
 
         String openid = sessionInfo.getOpenid();
         if(openid == null){
@@ -87,17 +100,17 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
 
         //先检查用户是否注册过
         UserEntity user = getUserByVID(sessionInfo.getOpenid());
-        if(user != null){
-             throw UserRegisterErrorEnum.USER_ALREADY_EXIST.toException();
+
+        if(user == null){
+            UserEntity userEntity = new UserEntity();
+            userEntity.setTeacherName(registerVo.getTeacherName());
+            userEntity.setUName(registerVo.getUserName());
+            userEntity.setVId(sessionInfo.getOpenid());
+            this.save(userEntity);
+            user = userEntity;
         }
 
-        UserEntity userEntity = new UserEntity();
-        userEntity.setTeacherName(registerVo.getTeacherName());
-        userEntity.setUName(registerVo.getUserName());
-        userEntity.setVId(sessionInfo.getOpenid());
-        this.save(userEntity);
-
-        String sessionId = sessionService.createSession(userEntity);
+        String sessionId = sessionService.createSession(user);
 
         return sessionId;
     }

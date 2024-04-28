@@ -33,5 +33,9 @@ public class SegmentQueryResp {
     /**
      * 时段状态（0：不可用  1： 未预约  2： 已预约）
      */
-    private Integer status;
+    private int status;
+
+    private String studentName;
+
+    private String teacherName;
 }

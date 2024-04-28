@@ -21,6 +21,15 @@
         SET status = 2, u_name = #{uName}, u_id = #{uId}
         WHERE status = 1 AND t_id = #{tId}
     </update>
+    <update id="updateMultiSegments">
+        UPDATE segment
+        SET status = 2, u_name = #{uName}, u_id = #{uId}
+        WHERE status = 1
+        AND t_id IN
+        <foreach collection="tIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
 
 
 </mapper>

@@ -1,6 +1,7 @@
 package com.yuyue.backend.controller;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 //import org.apache.shiro.authz.annotation.RequiresPermissions;
@@ -39,10 +40,16 @@ public class RoomController {
     //@RequiresPermissions("backend:room:list")
     public R list(@RequestParam Map<String, Object> params){
         PageUtils page = roomService.queryPage(params);
-        System.out.println(UserContext.getUser());
+//        System.out.println(UserContext.getUser());
         return R.ok().put("page", page);
     }
 
+    @RequestMapping("/get_all_names")
+    //@RequiresPermissions("backend:room:list")
+    public R list(){
+        List<String> roomName = roomService.getAllNames();
+        return R.ok().put("data", roomName);
+    }
 
     /**
      * 信息
@@ -84,7 +91,6 @@ public class RoomController {
     //@RequiresPermissions("backend:room:delete")
     public R delete(@RequestBody Integer[] rIds){
 		roomService.removeByIds(Arrays.asList(rIds));
-
         return R.ok();
     }
 

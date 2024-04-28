@@ -12,11 +12,11 @@
     </resultMap>
     <update id="bookCountPlus">
         update user
-        set book_count = book_count + 1
+        set book_count = book_count + #{number}
         where u_id = #{uId}
     </update>
     <select id="getBookCount" resultType="java.lang.Integer">
-         SELECT SUM(book_count)
+         SELECT COALESCE(SUM(book_count), 0)
          FROM user
          WHERE teacher_name = #{teacherName}
     </select>

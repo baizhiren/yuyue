@@ -60,7 +60,13 @@ public class R extends HashMap<String, Object> {
 		r.putAll(map);
 		return r;
 	}
-	
+	public static R ok(String code, String msg) {
+		R r = new R();
+		r.put("code", code);
+		r.put("msg", msg);
+		return r;
+	}
+
 	public static R ok() {
 		return new R();
 	}

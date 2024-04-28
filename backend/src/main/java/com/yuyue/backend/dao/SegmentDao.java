@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 
  * 
@@ -15,4 +17,6 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SegmentDao extends BaseMapper<SegmentEntity> {
     int updateSegmentStatusAndUser(@Param("tId") int tId, @Param("uName") String uName, @Param("uId") int uId);
+    int updateMultiSegments(@Param("tIds") List<Integer> tIds, @Param("uName") String uName, @Param("uId") int uId);
+
 }

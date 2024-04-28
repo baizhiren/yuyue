@@ -3,25 +3,25 @@ package com.yuyue.backend;
 import com.google.gson.Gson;
 import com.yuyue.backend.component.FreshDataTask;
 import com.yuyue.backend.component.RedisRepository;
+import com.yuyue.backend.component.SaveRoomToRedis;
 import com.yuyue.backend.constant.RedisKey;
 import com.yuyue.backend.entity.UserEntity;
 import com.yuyue.backend.service.SegmentService;
 import com.yuyue.backend.service.UserService;
 import com.yuyue.backend.vo.SegmentQueryResp;
 import com.yuyue.backend.vo.SegmentQueryVo;
+import org.assertj.core.api.ArraySortedAssert;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import javax.xml.crypto.Data;
+import java.lang.reflect.Array;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 @SpringBootTest
@@ -97,13 +97,39 @@ class BackendApplicationTests {
     void testBookCountPlus(){
         UserEntity userEntity = new UserEntity();
         userEntity.setUId(9);
-        userService.bookCountPlus(userEntity);
+        userService.bookCountPlus(userEntity, 1);
     }
 
     @Test
     void testBookCountFresh(){
         userService.fresh_count();
     }
+
+    @Autowired
+    SaveRoomToRedis saveRoomToRedis;
+
+    @Test
+    void testSaveRoomToRedis(){
+        saveRoomToRedis.save();
+    }
+
+
+    @Test
+    void testCheckMultiExist(){
+        List<Boolean> booleans = redisRepository.checkMultipleFieldsExistence("yuyue:segment:科研楼624:2", Arrays.asList("1946", "1947", "1948", 2999));
+        assert booleans.get(0);
+        assert booleans.get(1);
+        assert booleans.get(2);
+        assert !booleans.get(3);
+    }
+
+    @Test
+    void testInsertMultiFieldsNotExist(){
+        String key = "yuyue:segment:科研楼610:1:status";
+        Boolean aBoolean = redisRepository.insertMultiHashKeyNotExist(key, Arrays.asList(1996, 1997, 1998), Arrays.asList("jack", "lilith", "mike"));
+        System.out.println("插入：" + aBoolean);
+    }
+
 
 
 

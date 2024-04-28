@@ -16,5 +16,5 @@ import org.apache.ibatis.annotations.Param;
 public interface UserDao extends BaseMapper<UserEntity> {
     int getBookCount(@Param("teacherName") String teacherName);
 
-    void bookCountPlus(@Param("uId") int uId);
+    void bookCountPlus(@Param("uId") int uId, @Param("number") int number);
 }

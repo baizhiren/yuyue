@@ -7,6 +7,7 @@ import java.util.Map;
 import com.yuyue.backend.entity.WeChatSession;
 import com.yuyue.backend.service.impl.WeChatService;
 import com.yuyue.backend.vo.RegisterVo;
+import com.yuyue.backend.vo.UserSaveToRedis;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,9 +37,16 @@ public class UserController {
     //@RequiresPermissions("backend:user:list")
     public R list(@RequestParam Map<String, Object> params){
         PageUtils page = userService.queryPage(params);
-
         return R.ok().put("page", page);
     }
+
+    @RequestMapping("/getUserInfo")
+    //@RequiresPermissions("backend:user:list")
+    public R getUserInfo(){
+        UserSaveToRedis info = userService.getUserInfo();
+        return R.ok().put("data", info);
+    }
+
 
 
     /**
@@ -48,7 +56,6 @@ public class UserController {
     //@RequiresPermissions("backend:user:info")
     public R info(@PathVariable("uId") Integer uId){
 		UserEntity user = userService.getById(uId);
-
         return R.ok().put("user", user);
     }
 
@@ -86,9 +93,8 @@ public class UserController {
     }
 
     @RequestMapping("/register")
-    public R register(@ModelAttribute RegisterVo registerVo){
+    public R register(@RequestBody RegisterVo registerVo){
         String sessionID = userService.register(registerVo);
         return R.ok().put("yuyueSessionId", sessionID);
     }
-
 }

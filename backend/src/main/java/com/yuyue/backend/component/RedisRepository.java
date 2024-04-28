@@ -3,10 +3,13 @@ package com.yuyue.backend.component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -91,6 +94,76 @@ public class RedisRepository {
     }
     public String getHash(String key, String fieldName){
         return String.valueOf(redisTemplate.opsForHash().get(key, fieldName));
+    }
+
+    public long saveSet(String key, List<String> list){
+        SetOperations<String, String> ops = redisTemplate.opsForSet();
+        return ops.add(key, list.toArray(new String[0]));
+    }
+
+    public List<String> getSet(String key){
+        SetOperations<String, String> ops = redisTemplate.opsForSet();
+        Set<String> members = ops.members(key);
+        return new ArrayList<>(members);
+    }
+
+    public List<Boolean> checkMultipleFieldsExistence(String hashKey, List<?> fields) {
+        String luaScript = "local results = {} " +
+                "for i, field in ipairs(KEYS) do " +
+                "  results[i] = redis.call('HEXISTS', ARGV[1], field) " +
+                "end " +
+                "return results";
+        List<String> fieldStrings = fields.stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+
+        DefaultRedisScript<List> script = new DefaultRedisScript<>(luaScript, List.class);
+
+
+        List<Long> rawResults = redisTemplate.execute(script, fieldStrings, hashKey);
+        System.out.println("raw results: " +  rawResults);
+        List<Boolean> results = rawResults.stream()
+                .map(value -> value == 1)
+                .collect(Collectors.toList());
+        System.out.println(results.get(0));
+        return results;
+    }
+    public Boolean insertMultiHashKeyNotExist(String hashKey, List<?> fields, List<?> values) {
+        String luaScript = "local results = {} " +
+                "for i, field in ipairs(KEYS) do " +
+                "  results[i] = redis.call('HEXISTS', ARGV[1], field) " +
+                "end " +
+                "return results";
+        List<String> fieldStrings = fields.stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+        List<String> valueStrings = values.stream()
+                .map(Object::toString)
+                .collect(Collectors.toList());
+
+        String args[] = new String[fields.size() * 2];
+        for (int i = 0, id = 0; i < fieldStrings.size(); i ++) {
+            args[id ++] = fieldStrings.get(i);
+            args[id ++] = valueStrings.get(i);
+        }
+        // 创建脚本实例
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptText(
+                "local key = KEYS[1] " +
+                        "for i = 1, #ARGV, 2 do " +
+                        "  if redis.call('hexists', key, ARGV[i]) == 1 then " +
+                        "    return 0 " +
+                        "  end " +
+                        "end " +
+                        "for i = 1, #ARGV, 2 do " +
+                        "  redis.call('hset', key, ARGV[i], ARGV[i + 1]) " +
+                        "end " +
+                        "return 1");
+        script.setResultType(Long.class);
+
+        // 执行脚本
+        Long result = redisTemplate.execute(script, Arrays.asList(hashKey), args);
+        return result == 1;
     }
 
 

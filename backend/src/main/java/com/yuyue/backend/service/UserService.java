@@ -3,6 +3,7 @@ package com.yuyue.backend.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.yuyue.backend.entity.WeChatSession;
 import com.yuyue.backend.vo.RegisterVo;
+import com.yuyue.backend.vo.UserSaveToRedis;
 import io.renren.common.utils.PageUtils;
 import com.yuyue.backend.entity.UserEntity;
 
@@ -19,7 +20,7 @@ public interface UserService extends IService<UserEntity> {
 
     PageUtils queryPage(Map<String, Object> params);
 
-    void bookCountPlus(UserEntity user);
+    void bookCountPlus(UserEntity user, int number);
 
     WeChatSession getSessionInfo(String code);
 
@@ -31,8 +32,6 @@ public interface UserService extends IService<UserEntity> {
 
     void fresh_count();
 
-
-
-
+    UserSaveToRedis getUserInfo();
 }
 

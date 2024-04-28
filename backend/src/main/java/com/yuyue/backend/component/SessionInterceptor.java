@@ -39,7 +39,7 @@ public class SessionInterceptor implements HandlerInterceptor {
 
     private void writeErrorResponse(HttpServletResponse response, R errorResponse) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_ACCEPTED);
         response.getWriter().write(gson.toJson(errorResponse));
     }
 }

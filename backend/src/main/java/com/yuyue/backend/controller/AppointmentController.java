@@ -72,7 +72,6 @@ public class AppointmentController {
     //@RequiresPermissions("backend:appointment:update")
     public R update(@RequestBody AppointmentEntity appointment){
 		appointmentService.updateById(appointment);
-
         return R.ok();
     }
 

@@ -51,17 +51,13 @@ public class SegmentController {
     public R makeAppointment(@RequestBody AppointmentVo appointmentVo){
         //获取用户id
         segmentService.makeAppointment(appointmentVo);
-        return R.ok();
+        return R.ok("2000", "预约成功");
     }
-
     @RequestMapping("/query")
     public R querySegment(@RequestBody SegmentQueryVo segmentQueryVo){
        List<SegmentQueryResp> res = segmentService.querySegment(segmentQueryVo);
        return R.ok().put("data", res);
     }
-
-
-
 
     /**
      * 信息
@@ -80,7 +76,6 @@ public class SegmentController {
     //@RequiresPermissions("backend:segment:save")
     public R save(@RequestBody SegmentEntity segment){
         segmentService.save(segment);
-
         return R.ok();
     }
 
