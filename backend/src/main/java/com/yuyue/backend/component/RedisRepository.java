@@ -165,6 +165,29 @@ public class RedisRepository {
         Long result = redisTemplate.execute(script, Arrays.asList(hashKey), args);
         return result == 1;
     }
+    
+    public Boolean deleteMultiHashField(String key, List<Integer> ids){
+        List<String> collect = ids.stream().map(item -> String.valueOf(item)).collect(Collectors.toList());
+        String[] fields = collect.toArray(new String[0]);
+        Long delete = redisTemplate.opsForHash().delete(key, fields);
+        return delete == ids.size();
+    }
+
+    public List<String> getMultiHashField(String key, List<Integer> ids){
+        List<Object> fieldKeys = ids.stream().map(Object::toString).collect(Collectors.toList());
+
+        List<Object> objects = redisTemplate.opsForHash().multiGet(key, fieldKeys);
+
+        return objects.stream()
+                .map(object -> (String) object) // 假设所有返回的对象都可以安全地转换为String
+                .collect(Collectors.toList());
+
+    }
+
+
+
+
+
 
 
 }

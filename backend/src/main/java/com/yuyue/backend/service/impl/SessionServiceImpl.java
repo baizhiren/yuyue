@@ -41,6 +41,7 @@ public class SessionServiceImpl implements SessionService {
         if(!redisRepository.hasKey(key)) return false;
         UserEntity user = redisRepository.findObject(key, UserEntity.class);
         UserContext.setUser(user);
+        UserContext.setUserKey(key);
         return true;
     }
 

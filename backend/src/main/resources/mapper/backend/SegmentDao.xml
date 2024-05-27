@@ -18,18 +18,26 @@
     </resultMap>
     <update id="updateSegmentStatusAndUser">
         UPDATE segment
-        SET status = 2, u_name = #{uName}, u_id = #{uId}
+        SET status = 2
         WHERE status = 1 AND t_id = #{tId}
     </update>
     <update id="updateMultiSegments">
         UPDATE segment
-        SET status = 2, u_name = #{uName}, u_id = #{uId}
+        SET status = 2
         WHERE status = 1
         AND t_id IN
         <foreach collection="tIds" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
     </update>
-
+    <delete id="cancelMultiSegments">
+        UPDATE segment
+        SET status = 1
+        WHERE status = 2
+        AND t_id IN
+        <foreach collection="tIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
 </mapper>

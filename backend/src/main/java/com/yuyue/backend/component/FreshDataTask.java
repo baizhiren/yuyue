@@ -100,10 +100,10 @@ public class FreshDataTask {
         for(RoomEntity room: roomEntities){
             for(int i = 1; i <= 7; i ++){
                if(!weeks.contains(i)) continue;
-               LocalDateTime start = startTimeArray[i];
+               LocalDateTime start = startTimeArray[i - 1];
                LocalDateTime end = start.plusHours(gap);
                List<SegmentEntity> list = new ArrayList<>();
-                while(start.isBefore(endTimeArray[i])){
+                while(start.isBefore(endTimeArray[i - 1])){
                     //保存
                     SegmentEntity segment = new SegmentEntity();
 

@@ -17,8 +17,8 @@
     </update>
     <select id="getBookCount" resultType="java.lang.Integer">
          SELECT COALESCE(SUM(book_count), 0)
-         FROM user
-         WHERE teacher_name = #{teacherName}
-    </select>
+        FROM user
+        WHERE teacher_name = #{teacherName}
+        </select>
 
-</mapper>
+        </mapper>

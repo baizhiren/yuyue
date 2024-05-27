@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Mapper
 public interface SegmentDao extends BaseMapper<SegmentEntity> {
-    int updateSegmentStatusAndUser(@Param("tId") int tId, @Param("uName") String uName, @Param("uId") int uId);
-    int updateMultiSegments(@Param("tIds") List<Integer> tIds, @Param("uName") String uName, @Param("uId") int uId);
-
+    int updateSegmentStatusAndUser(@Param("tId") int tId);
+    int updateMultiSegments(@Param("tIds") List<Integer> tIds);
+    int cancelMultiSegments(@Param("tIds") List<Integer> tIds);
 }

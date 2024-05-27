@@ -4,6 +4,9 @@ import com.google.gson.internal.$Gson$Preconditions;
 import com.yuyue.backend.component.RedisRepository;
 import com.yuyue.backend.constant.RedisKey;
 import com.yuyue.backend.constant.RoomStatus;
+import com.yuyue.backend.constant.UserStatus;
+import com.yuyue.backend.entity.Book;
+import com.yuyue.backend.entity.BookAndSegment;
 import com.yuyue.backend.entity.UserEntity;
 import com.yuyue.backend.exception.MakeAppointmentErrorEnum;
 import com.yuyue.backend.service.UserService;
@@ -18,10 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -46,8 +46,18 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
     @Autowired
     UserService userService;
 
+    @Autowired
+    BookService bookService;
+
+    @Autowired
+    BookAndSegmentService bookAndSegmentService;
+
+    //todo 这些配置文件可以动态变化吗
     @Value("${yuyue.max_book}")
     int max_book;
+
+    @Value("${yuyue.cross_segment}")
+    boolean cross_segment;
 
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
@@ -100,17 +110,39 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         res.sort(Comparator.comparingInt(SegmentQueryResp::getTId));
         return res;
     }
+
+    boolean checkContinue(List<Integer> list){
+        for(int i = 1; i < list.size(); i ++){
+            if(list.get(i) != list.get(i - 1) + 1) return false;
+        }
+        return true;
+    }
+
     //修改成批量插入，提高效率
-    //todo 如果用户一直在同一个时间段预约，会不会出现反复预约不成功的情况？如何优化
+    //todo 如果多个用户一直在同一个时间段预约，会不会出现反复预约不成功的情况？如何优化
     //todo 考虑把用户信息完整的保存到redis里，考虑更新操作
-    //todo 处理是否需要连续预约
     @Override
     public void makeAppointment(AppointmentVo appointmentVo) {
         //获取用户信息
         UserEntity user = UserContext.getUser();
-        if(StringUtil.isBlank(user.getTeacherName()) || StringUtil.isBlank(user.getUName()))  throw MakeAppointmentErrorEnum.NAME_EMPTY.toException();
+        if(StringUtil.isBlank(user.getTeacherName()) || StringUtil.isBlank(user.getUName())) {
+            //用户第一次预约，新增姓名
+            UserEntity userEntity = new UserEntity();
+            userEntity.setUId(user.getUId());
+            userEntity.setUName(appointmentVo.getStudentName());
+            userEntity.setTeacherName(appointmentVo.getTeacherName());
+            userService.updateById(userEntity);
+
+            //todo 修改为hash可能好一点
+            //修改redis中的数据
+            user.setUName(appointmentVo.getStudentName());
+            user.setTeacherName(appointmentVo.getTeacherName());
+            redisRepository.saveObject(UserContext.getUserKey(), user);
+        }
+        if(user.getStatus() != UserStatus.ACTIVE.getCode()) throw MakeAppointmentErrorEnum.USER_NOT_VALID.toException();
 
         List<Integer> tIds  = appointmentVo.getTIds();
+        if(!cross_segment && !checkContinue(tIds)) throw MakeAppointmentErrorEnum.SEGMENT_NOT_CONTINUE.toException();
 
         String teacherName = user.getTeacherName();
         int bookCount = userService.getBookCount(teacherName);
@@ -130,9 +162,10 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
             throw MakeAppointmentErrorEnum.SEGMENT_ALREADY_BOOKED.toException();
         }
 
-        //尝试预约
+        //尝 试预约
+        //把u_id 的信息放在最后
         List<String> names = IntStream.range(0, tIds.size())
-                .mapToObj(i -> user.getTeacherName() + ";" + user.getUName())
+                .mapToObj(i -> user.getTeacherName() + ";" + user.getUName() + ";" + user.getUId())
                 .collect(Collectors.toList());
 
         boolean success = redisRepository.insertMultiHashKeyNotExist(status_key, tIds, names);
@@ -140,12 +173,37 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
             throw MakeAppointmentErrorEnum.SEGMENT_ALREADY_BOOKED.toException();
         }
 
-        //预约成功
-        //todo 研究这条语句的查询索引的效率问题
-        int count = this.baseMapper.updateMultiSegments(tIds, user.getUName(), user.getUId());
+        //预约成功, 更新数据库
+        //todo 研究查询索引的效率问题
+
+        //1. 更新segment表
+        int count = this.baseMapper.updateMultiSegments(tIds);
         if(count != tIds.size()){
             //todo 如果数据库异常应该怎么办，如何保证和redis的一致性？
-            throw  MakeAppointmentErrorEnum.DATABASE_UPDATE_ERROR.toException();
+            throw  MakeAppointmentErrorEnum.DATABASE_SEGMENT_UPDATE_ERROR.toException();
+        }
+
+        //2. 更新book表
+        Book book = new Book();
+        book.setUId(user.getUId());
+        book.setBookTime(new Date());
+        boolean save = bookService.save(book);
+        if(!save){
+            throw  MakeAppointmentErrorEnum.DATABASE_BOOK_UPDATE_ERROR.toException();
+        }
+
+        int bookId = book.getBookId();
+        List<BookAndSegment> bookAndSegments = tIds.stream().map(tid -> {
+            BookAndSegment bookAndSegment = new BookAndSegment();
+            bookAndSegment.setBookId(bookId);
+            bookAndSegment.setTId(tid);
+            return bookAndSegment;
+        }).collect(Collectors.toList());
+
+        //3. 更新book_segment 表
+        save = bookAndSegmentService.saveBatch(bookAndSegments);
+        if(!save){
+            throw  MakeAppointmentErrorEnum.DATABASE_BOOK_AND_SEGMENT_UPDATE_ERROR.toException();
         }
         userService.bookCountPlus(user, tIds.size());
     }

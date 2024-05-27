@@ -5,11 +5,17 @@ import com.yuyue.backend.component.FreshDataTask;
 import com.yuyue.backend.component.RedisRepository;
 import com.yuyue.backend.component.SaveRoomToRedis;
 import com.yuyue.backend.constant.RedisKey;
+import com.yuyue.backend.entity.Book;
+import com.yuyue.backend.entity.BookAndSegment;
 import com.yuyue.backend.entity.UserEntity;
 import com.yuyue.backend.service.SegmentService;
 import com.yuyue.backend.service.UserService;
+import com.yuyue.backend.service.impl.BookAndSegmentService;
+import com.yuyue.backend.service.impl.BookService;
 import com.yuyue.backend.vo.SegmentQueryResp;
 import com.yuyue.backend.vo.SegmentQueryVo;
+import com.yuyue.backend.vo.SegmentSaveToRedis;
+import org.apache.ibatis.annotations.Param;
 import org.assertj.core.api.ArraySortedAssert;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +28,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 @SpringBootTest
@@ -128,6 +135,55 @@ class BackendApplicationTests {
         String key = "yuyue:segment:科研楼610:1:status";
         Boolean aBoolean = redisRepository.insertMultiHashKeyNotExist(key, Arrays.asList(1996, 1997, 1998), Arrays.asList("jack", "lilith", "mike"));
         System.out.println("插入：" + aBoolean);
+    }
+
+
+    @Autowired
+    BookService bookService;
+    @Test
+    void insertBook(){
+        Book book = new Book();
+        book.setUId(1);
+        book.setBookTime(new Date());
+        bookService.save(book);
+    }
+
+    @Autowired
+    BookAndSegmentService bookAndSegmentService;
+
+    @Test
+    void insertBookSegment(){
+        BookAndSegment bookAndSegment = new BookAndSegment();
+        bookAndSegment.setBookId(1);
+        bookAndSegment.setTId(1);
+        bookAndSegmentService.save(bookAndSegment);
+    }
+
+    @Test
+    void testGetMultiField(){
+        List<Integer> integers = Arrays.asList(85, 86, 1000);
+
+        List<String> multiHashField = redisRepository.getMultiHashField(RedisKey.segmentInfo + "科研楼610:2", integers);
+        List<SegmentSaveToRedis> collect = multiHashField.stream().map(item -> {
+            SegmentSaveToRedis segmentSaveToRedis = redisRepository.fromJson(item, SegmentSaveToRedis.class);
+            return segmentSaveToRedis;
+        }).collect(Collectors.toList());
+
+        for(SegmentSaveToRedis s: collect){
+            System.out.println(s.getStartTime());
+        }
+
+
+        Date date = new Date();
+        System.out.println(date);
+
+
+    }
+    @Test
+    void deleteMultiField(){
+        List<Integer> integers = Arrays.asList(99, 100, 101);
+        Boolean success = redisRepository.deleteMultiHashField(RedisKey.segmentInfo + "科研楼610:3:status", integers);
+        System.out.println(success);
     }
 
 

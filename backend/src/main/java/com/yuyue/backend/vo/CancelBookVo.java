@@ -6,16 +6,12 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class AppointmentVo {
-
-    @JsonProperty("tIds")
-    private  List<Integer> tIds;
+public class CancelBookVo {
 
     private Integer week;
 
     private String roomName;
 
-    private String studentName;
+    private Integer bookId;
 
-    private String teacherName;
 }

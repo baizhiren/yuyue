@@ -2,6 +2,7 @@ package com.yuyue.backend.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.google.gson.Gson;
+import com.yuyue.backend.constant.UserStatus;
 import com.yuyue.backend.entity.WeChatSession;
 import com.yuyue.backend.exception.UserRegisterErrorEnum;
 import com.yuyue.backend.service.SessionService;
@@ -68,7 +69,6 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
         this.baseMapper.bookCountPlus(user.getUId(), number);
     }
 
-
     public WeChatSession getSessionInfo(String code) {
         // 向微信服务器请求换取openid和session_key
         String sessionKey = weChatService.getSessionKey(code);
@@ -106,6 +106,7 @@ public class UserServiceImpl extends ServiceImpl<UserDao, UserEntity> implements
             userEntity.setTeacherName(registerVo.getTeacherName());
             userEntity.setUName(registerVo.getUserName());
             userEntity.setVId(sessionInfo.getOpenid());
+            userEntity.setStatus(UserStatus.ACTIVE.getCode());
             this.save(userEntity);
             user = userEntity;
         }

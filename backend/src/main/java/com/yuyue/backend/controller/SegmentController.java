@@ -53,6 +53,11 @@ public class SegmentController {
         segmentService.makeAppointment(appointmentVo);
         return R.ok("2000", "预约成功");
     }
+
+
+
+
+
     @RequestMapping("/query")
     public R querySegment(@RequestBody SegmentQueryVo segmentQueryVo){
        List<SegmentQueryResp> res = segmentService.querySegment(segmentQueryVo);
