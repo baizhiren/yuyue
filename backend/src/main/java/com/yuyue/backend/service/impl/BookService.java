@@ -17,6 +17,8 @@ import com.yuyue.backend.service.UserService;
 import com.yuyue.backend.tool.ObjectUtil;
 import com.yuyue.backend.utility.UserContext;
 import com.yuyue.backend.vo.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +42,9 @@ public class BookService extends ServiceImpl<BookDao, Book>{
 
     @Autowired
     UserService userService;
+
+
+    private static final Logger logger = LogManager.getLogger(BookService.class);
 
     public List<RecordResp> getHistoryRecord(){
         UserEntity user = UserContext.getUser();
@@ -126,6 +131,9 @@ public class BookService extends ServiceImpl<BookDao, Book>{
 //            if(!split[2].equals(String.valueOf(user.getUId()) ))
 //                throw CancelBookErrorEnum.SEGMENT_NOT_BELONG_CURRENT_USER.toException();
 //        }
+
+
+
 
 
         //删除预约项

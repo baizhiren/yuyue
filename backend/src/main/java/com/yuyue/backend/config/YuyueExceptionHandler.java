@@ -21,7 +21,7 @@ public class YuyueExceptionHandler {
     public R handleRRException(RRException e){
         R r = new R();
         r.put("code", e.getCode());
-        r.put("msg", e.getMessage());
+        r.put("msg", e.getMsg());
         return r;
     }
 }

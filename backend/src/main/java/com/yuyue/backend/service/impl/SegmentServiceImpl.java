@@ -17,11 +17,15 @@ import com.yuyue.backend.vo.AppointmentVo;
 import com.yuyue.backend.vo.SegmentQueryResp;
 import com.yuyue.backend.vo.SegmentQueryVo;
 import com.yuyue.backend.vo.SegmentSaveToRedis;
+import io.renren.common.exception.RRException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,6 +38,8 @@ import io.renren.common.utils.Query;
 import com.yuyue.backend.dao.SegmentDao;
 import com.yuyue.backend.entity.SegmentEntity;
 import com.yuyue.backend.service.SegmentService;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service("segmentService")
@@ -59,6 +65,12 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
     @Value("${yuyue.cross_segment}")
     boolean cross_segment;
 
+    @Autowired
+    private SegmentServiceImpl self;
+
+
+
+    private static final Logger logger = LogManager.getLogger(SegmentServiceImpl.class);
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
         IPage<SegmentEntity> page = this.page(
@@ -118,6 +130,8 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         return true;
     }
 
+
+
     //修改成批量插入，提高效率
     //todo 如果多个用户一直在同一个时间段预约，会不会出现反复预约不成功的情况？如何优化
     //todo 考虑把用户信息完整的保存到redis里，考虑更新操作
@@ -173,24 +187,43 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
             throw MakeAppointmentErrorEnum.SEGMENT_ALREADY_BOOKED.toException();
         }
 
-        //预约成功, 更新数据库
+
+        try {
+            self.updateDateBase(user, tIds);
+        } catch (RRException e) {
+            handleRedisRollback(e, key, tIds);
+        } catch (Exception other) {
+            logger.error("更新数据库未知异常", other);
+            throw MakeAppointmentErrorEnum.UNKNOWN_ERROR.toException();
+        }
+    }
+
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = { Exception.class })
+    public void updateDateBase(UserEntity user, List<Integer> tIds) {
         //todo 研究查询索引的效率问题
 
         //1. 更新segment表
         int count = this.baseMapper.updateMultiSegments(tIds);
         if(count != tIds.size()){
-            //todo 如果数据库异常应该怎么办，如何保证和redis的一致性？
             throw  MakeAppointmentErrorEnum.DATABASE_SEGMENT_UPDATE_ERROR.toException();
         }
+
+
 
         //2. 更新book表
         Book book = new Book();
         book.setUId(user.getUId());
         book.setBookTime(new Date());
         boolean save = bookService.save(book);
+
+        save = false;
         if(!save){
             throw  MakeAppointmentErrorEnum.DATABASE_BOOK_UPDATE_ERROR.toException();
         }
+
+
 
         int bookId = book.getBookId();
         List<BookAndSegment> bookAndSegments = tIds.stream().map(tid -> {
@@ -205,7 +238,37 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         if(!save){
             throw  MakeAppointmentErrorEnum.DATABASE_BOOK_AND_SEGMENT_UPDATE_ERROR.toException();
         }
+
+        //4. 更新user表
         userService.bookCountPlus(user, tIds.size());
+    }
+
+
+    public RRException append(RRException e, String msg){
+        e.setMsg(e.getMsg() + msg);
+        return e;
+    }
+
+
+    private void handleRedisRollback(RRException originalException, String key, List<Integer> tIds) {
+        boolean handle_exception = false;
+        try {
+            Boolean is_success = redisRepository.deleteMultiHashField(key + ":status", tIds);
+            handle_exception = true;
+            if (is_success) {
+                logger.warn("Redis rollback success for {}: {} : {}", key, tIds, originalException.getMessage());
+                throw append(originalException, ", Redis rollback success");
+            } else {
+                logger.error("Redis rollback failure for {}: {}, {}", key,  tIds, originalException.getMessage());
+                throw append(originalException, ", Redis rollback failure");
+            }
+
+        } catch (Exception other) {
+            if(!handle_exception){
+                logger.error("Error during Redis rollback: ", other);
+                throw MakeAppointmentErrorEnum.REDIS_ROLLBACK_ERROR.toException();
+            }else throw other;
+        }
     }
 
     public static void main(String[] args) {

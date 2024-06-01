@@ -16,6 +16,8 @@ import com.yuyue.backend.vo.SegmentQueryResp;
 import com.yuyue.backend.vo.SegmentQueryVo;
 import com.yuyue.backend.vo.SegmentSaveToRedis;
 import org.apache.ibatis.annotations.Param;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.assertj.core.api.ArraySortedAssert;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 
 @SpringBootTest
@@ -187,6 +190,15 @@ class BackendApplicationTests {
     }
 
 
+    private static final Logger logger = LogManager.getLogger(BackendApplicationTests.class);
+    @Test
+    void testLog(){
+        logger.info("thi is info");
+        logger.debug("this is get_record debug");
+        logger.warn("this is warn");
+        logger.error("this is get_record error");
+        System.out.println("this is sout test");
+    }
 
 
 

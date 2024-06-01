@@ -129,11 +129,6 @@ public class RedisRepository {
         return results;
     }
     public Boolean insertMultiHashKeyNotExist(String hashKey, List<?> fields, List<?> values) {
-        String luaScript = "local results = {} " +
-                "for i, field in ipairs(KEYS) do " +
-                "  results[i] = redis.call('HEXISTS', ARGV[1], field) " +
-                "end " +
-                "return results";
         List<String> fieldStrings = fields.stream()
                 .map(Object::toString)
                 .collect(Collectors.toList());

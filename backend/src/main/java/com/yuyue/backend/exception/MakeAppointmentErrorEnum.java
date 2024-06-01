@@ -13,7 +13,9 @@ public enum MakeAppointmentErrorEnum {
     SEGMENT_NOT_EXIST(2007, "时段不存在"),
     NAME_EMPTY(2008, "用户信息不能为空"),
     USER_NOT_VALID(2009, "用户禁用或注销"),
-    SEGMENT_NOT_CONTINUE(2010, "预约时间段不连续");
+    SEGMENT_NOT_CONTINUE(2010, "预约时间段不连续"),
+    UNKNOWN_ERROR(2011, "未知错误"),
+    REDIS_ROLLBACK_ERROR(2012, "redis回滚异常");
     private final int code;
     private final String message;
 

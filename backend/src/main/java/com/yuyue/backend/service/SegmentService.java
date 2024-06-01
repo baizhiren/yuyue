@@ -1,6 +1,7 @@
 package com.yuyue.backend.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yuyue.backend.entity.UserEntity;
 import com.yuyue.backend.vo.AppointmentVo;
 import com.yuyue.backend.vo.SegmentQueryResp;
 import com.yuyue.backend.vo.SegmentQueryVo;
@@ -24,5 +25,7 @@ public interface SegmentService extends IService<SegmentEntity> {
     List<SegmentQueryResp> querySegment(SegmentQueryVo segmentQueryVo);
 
     void makeAppointment(AppointmentVo appointmentVo);
+
+    void updateDateBase(UserEntity user, List<Integer> tIds);
 }
 
