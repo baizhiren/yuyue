@@ -70,7 +70,7 @@ public class SegmentController {
     @RequestMapping("/info/{tId}")
     //@RequiresPermissions("backend:segment:info")
     public R info(@PathVariable("tId") Integer tId){
-		SegmentEntity segment = segmentService.getById(tId);
+        SegmentEntity segment = segmentService.getById(tId);
         return R.ok().put("segment", segment);
     }
 

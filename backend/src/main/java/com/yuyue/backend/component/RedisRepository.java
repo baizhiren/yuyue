@@ -119,13 +119,12 @@ public class RedisRepository {
 
         DefaultRedisScript<List> script = new DefaultRedisScript<>(luaScript, List.class);
 
-
         List<Long> rawResults = redisTemplate.execute(script, fieldStrings, hashKey);
-        System.out.println("raw results: " +  rawResults);
+        //System.out.println("raw results: " +  rawResults);
         List<Boolean> results = rawResults.stream()
                 .map(value -> value == 1)
                 .collect(Collectors.toList());
-        System.out.println(results.get(0));
+        //System.out.println(results.get(0));
         return results;
     }
     public Boolean insertMultiHashKeyNotExist(String hashKey, List<?> fields, List<?> values) {
@@ -142,6 +141,7 @@ public class RedisRepository {
             args[id ++] = valueStrings.get(i);
         }
         // 创建脚本实例
+        //todo 可以改为批量插入的脚本
         DefaultRedisScript<Long> script = new DefaultRedisScript<>();
         script.setScriptText(
                 "local key = KEYS[1] " +

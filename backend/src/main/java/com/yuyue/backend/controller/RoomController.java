@@ -69,7 +69,6 @@ public class RoomController {
     //@RequiresPermissions("backend:room:save")
     public R save(@RequestBody RoomEntity room){
 		roomService.save(room);
-
         return R.ok();
     }
 

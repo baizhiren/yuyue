@@ -17,7 +17,7 @@ public enum CancelBookErrorEnum {
     private final int code;
     private final String message;
 
-    CancelBookErrorEnum (int code, String message) {
+    CancelBookErrorEnum(int code, String message) {
         this.code = code;
         this.message = message;
     }

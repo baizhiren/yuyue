@@ -73,6 +73,7 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
     private static final Logger logger = LogManager.getLogger(SegmentServiceImpl.class);
     @Override
     public PageUtils queryPage(Map<String, Object> params) {
+
         IPage<SegmentEntity> page = this.page(
                 new Query<SegmentEntity>().getPage(params),
                 new QueryWrapper<SegmentEntity>()
@@ -103,6 +104,7 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
             //查询状态信息
             String statusKey = key + ":status";
             boolean b = redisRepository.hashFieldExists(statusKey, tid);
+            //todo 优化成批量查询
             if(b){
                 String status = redisRepository.getHash(statusKey, tid);
                 if(status.equals(RoomStatus.NOT_AVAILABLE.getCode() + ""))
@@ -158,11 +160,11 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         List<Integer> tIds  = appointmentVo.getTIds();
         if(!cross_segment && !checkContinue(tIds)) throw MakeAppointmentErrorEnum.SEGMENT_NOT_CONTINUE.toException();
 
-        String teacherName = user.getTeacherName();
-        int bookCount = userService.getBookCount(teacherName);
-        if(max_book != -1 && bookCount + appointmentVo.getTIds().size() > max_book){
-            throw MakeAppointmentErrorEnum.REACH_MAX_BOOK_LIMIT.toException();
-        }
+//        String teacherName = user.getTeacherName();
+//        int bookCount = userService.getBookCount(teacherName);
+//        if(max_book != -1 && bookCount + appointmentVo.getTIds().size() > max_book){
+//            throw MakeAppointmentErrorEnum.REACH_MAX_BOOK_LIMIT.toException();
+//        }
         //判断预约信息是否有效
         String key = RedisKey.segmentInfo + appointmentVo.getRoomName() + ":" + appointmentVo.getWeek();
         List<Boolean> checks = redisRepository.checkMultipleFieldsExistence(key, tIds);
@@ -172,10 +174,10 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         String status_key = key + ":status";
         List<Boolean> exists = redisRepository.checkMultipleFieldsExistence(status_key, tIds);
 
+        //todo 这里两个逻辑实际上可以合并，因为插入时本身要检查是否被预约
         if(exists.contains(true)){
             throw MakeAppointmentErrorEnum.SEGMENT_ALREADY_BOOKED.toException();
         }
-
         //尝 试预约
         //把u_id 的信息放在最后
         List<String> names = IntStream.range(0, tIds.size())
@@ -218,7 +220,6 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
         book.setBookTime(new Date());
         boolean save = bookService.save(book);
 
-        save = false;
         if(!save){
             throw  MakeAppointmentErrorEnum.DATABASE_BOOK_UPDATE_ERROR.toException();
         }
@@ -253,8 +254,10 @@ public class SegmentServiceImpl extends ServiceImpl<SegmentDao, SegmentEntity> i
     private void handleRedisRollback(RRException originalException, String key, List<Integer> tIds) {
         boolean handle_exception = false;
         try {
+            //这里需要检查是不是自己预约的id
             Boolean is_success = redisRepository.deleteMultiHashField(key + ":status", tIds);
             handle_exception = true;
+            //todo 应该隔一段时间进行尝试
             if (is_success) {
                 logger.warn("Redis rollback success for {}: {} : {}", key, tIds, originalException.getMessage());
                 throw append(originalException, ", Redis rollback success");
